@@ -6,8 +6,14 @@ class ImageRemoteDatasource {
 
   ImageRemoteDatasource(this.dio);
 
-  Future<List<ImageModel>> fetchImages() async {
-    final response = await dio.get('https://picsum.photos/v2/list');
+  Future<List<ImageModel>> fetchImages({int page = 1, int limit = 10}) async {
+    final response = await dio.get(
+      'https://picsum.photos/v2/list',
+      queryParameters: {
+        'page': page,
+        'limit': limit,
+      },
+    );
     return (response.data as List)
         .map((json) => ImageModel.fromJson(json))
         .toList();

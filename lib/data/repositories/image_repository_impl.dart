@@ -8,8 +8,8 @@ class ImageRepositoryImpl implements ImageRepository {
   ImageRepositoryImpl(this.remoteDatasource);
 
   @override
-  Future<List<ImageEntity>> getImages() async {
-    final models = await remoteDatasource.fetchImages();
+  Future<List<ImageEntity>> getImages({int page = 1, int limit = 10}) async {
+    final models = await remoteDatasource.fetchImages(page: page, limit: limit);
     return models
         .map((model) => ImageEntity(
               id: model.id,

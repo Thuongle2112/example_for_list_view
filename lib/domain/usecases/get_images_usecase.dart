@@ -6,7 +6,7 @@ class GetImagesUsecase {
 
   GetImagesUsecase(this.repository);
 
-  Future<List<ImageEntity>> call() async {
-    return await repository.getImages();
+  Future<List<ImageEntity>> call({int page = 1, int limit = 10}) async {
+    return await repository.getImages(page: page, limit: limit);
   }
 } 
