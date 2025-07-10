@@ -10,13 +10,16 @@ class ImageBloc extends Bloc<ImageEvent, ImageState> {
   final GetImagesUsecase getImagesUsecase;
   int _currentPage = 1;
   static const int _pageSize = 10;
+  final Set<String> _loadedImageIds = <String>{};
 
   ImageBloc(this.getImagesUsecase) : super(ImageInitial()) {
     on<FetchImagesEvent>((event, emit) async {
       emit(ImageLoading());
       _currentPage = 1;
+      _loadedImageIds.clear();
       try {
         final images = await getImagesUsecase(page: _currentPage, limit: _pageSize);
+        _addImageIds(images);
         emit(ImageLoaded(images, hasMore: images.length >= _pageSize));
       } catch (e) {
         emit(ImageError(e.toString()));
@@ -33,16 +36,34 @@ class ImageBloc extends Bloc<ImageEvent, ImageState> {
         
         try {
           final newImages = await getImagesUsecase(page: _currentPage, limit: _pageSize);
-          final allImages = [...currentState.images, ...newImages];
-          final hasMore = newImages.length >= _pageSize;
+          
+          // Lọc bỏ ảnh trùng lặp
+          final uniqueNewImages = newImages.where((img) => !_loadedImageIds.contains(img.id)).toList();
+          _addImageIds(uniqueNewImages);
+          
+          if (uniqueNewImages.isEmpty) {
+            // Không có ảnh mới, coi như hết dữ liệu
+            emit(currentState.copyWith(hasMore: false, isLoadingMore: false));
+            return;
+          }
+          
+          final allImages = [...currentState.images, ...uniqueNewImages];
+          final hasMore = uniqueNewImages.length >= _pageSize;
           
           emit(ImageLoaded(allImages, hasMore: hasMore, isLoadingMore: false));
         } catch (e) {
           _currentPage--; // Revert page on error
           emit(currentState.copyWith(isLoadingMore: false));
-          emit(ImageError(e.toString()));
+          // Không emit error để tránh làm mất danh sách hiện tại
+          print('Error loading more images: $e');
         }
       }
     });
+  }
+  
+  void _addImageIds(List<ImageEntity> images) {
+    for (final img in images) {
+      _loadedImageIds.add(img.id);
+    }
   }
 } 
