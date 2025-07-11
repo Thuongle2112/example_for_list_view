@@ -8,6 +8,7 @@ import '../bloc/image_bloc.dart';
 import '../../domain/entities/image_entity.dart';
 import 'detail/image_detail_page.dart';
 import 'qr/qr_generate_page.dart';
+import 'ai/ai_chat_page.dart';
 
 class ImageListViewPage extends StatefulWidget {
   const ImageListViewPage({super.key});
@@ -121,6 +122,18 @@ class _ImageListViewPageState extends State<ImageListViewPage>
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'AI Image Generator',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AiChatPage(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.qr_code),
             tooltip: 'Tạo QR cho album',
