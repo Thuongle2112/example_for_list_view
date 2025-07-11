@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:share_plus/share_plus.dart';
-// import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher  .dart';
+import 'package:gallery_saver_plus/gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:example_for_list_view/domain/entities/image_entity.dart';
@@ -10,6 +10,7 @@ import 'package:example_for_list_view/presentation/pages/detail/widgets/image_de
 import 'package:example_for_list_view/presentation/pages/detail/widgets/image_detail_actions.dart';
 import 'package:example_for_list_view/presentation/pages/detail/widgets/image_detail_share_option.dart';
 import 'package:example_for_list_view/presentation/pages/detail/widgets/image_detail_animation.dart';
+import 'package:example_for_list_view/presentation/pages/detail/widgets/battery_button.dart';
 
 class ImageDetailPage extends StatefulWidget {
   final ImageEntity image;
@@ -144,6 +145,8 @@ Future<void> _downloadImage() async {
               ),
               const SizedBox(height: 20),
               ImageDetailAnimation(),
+              const SizedBox(height: 20),
+              BatteryButton(),
               // Thông tin ảnh
             ],
           ),

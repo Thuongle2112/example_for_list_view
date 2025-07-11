@@ -5,7 +5,9 @@ import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import '../bloc/image_bloc.dart';
+import '../../domain/entities/image_entity.dart';
 import 'detail/image_detail_page.dart';
+import 'qr/qr_generate_page.dart';
 
 class ImageListViewPage extends StatefulWidget {
   const ImageListViewPage({super.key});
@@ -43,6 +45,47 @@ class _ImageListViewPageState extends State<ImageListViewPage>
     _refreshController.refreshCompleted();
   }
 
+  void _handleQrResult(dynamic qrResult) {
+    if (qrResult is Map<String, dynamic>) {
+      // Handle JSON data from QR
+      final albumId = qrResult['albumId'];
+      final title = qrResult['title'];
+      final images = qrResult['images'] as List<dynamic>?;
+      
+      if (images != null && images.isNotEmpty) {
+        // Convert to ImageEntity list
+        final imageEntities = images.map((img) {
+          if (img is String) {
+            return ImageEntity(
+              id: img.hashCode.toString(),
+              author: 'QR Album',
+              downloadUrl: img,
+            );
+          }
+          return null;
+        }).whereType<ImageEntity>().toList();
+        
+        if (imageEntities.isNotEmpty) {
+          // Load images from QR - for now just show a message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Đã mở album: $title (${imageEntities.length} ảnh)'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    } else if (qrResult is String) {
+      // Handle plain text from QR
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('QR content: $qrResult'),
+          backgroundColor: Colors.blue,
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -77,6 +120,41 @@ class _ImageListViewPageState extends State<ImageListViewPage>
         title: const Text('ListView Demo'),
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code),
+            tooltip: 'Tạo QR cho album',
+            onPressed: () async {
+              // Lấy danh sách ảnh hiện tại từ Bloc
+              final state = context.read<ImageBloc>().state;
+              if (state is ImageLoaded && state.images.isNotEmpty) {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => QrGeneratePage(
+                      images: state.images,
+                      albumName: 'My Photo Album',
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No images to create QR for')),
+                );
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner),
+            tooltip: 'Quét QR mở album',
+            onPressed: () async {
+              final qrResult = await Navigator.pushNamed(context, '/qr-scan');
+              if (qrResult != null) {
+                _handleQrResult(qrResult);
+              }
+            },
+          ),
+        ],
       ),
       body: BlocBuilder<ImageBloc, ImageState>(
         builder: (context, state) {
