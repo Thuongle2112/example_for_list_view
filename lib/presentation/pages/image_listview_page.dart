@@ -15,6 +15,7 @@ import 'qr/qr_generate_page.dart';
 import 'ai/ai_chat_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:local_auth/local_auth.dart';
 
 class ImageListViewPage extends StatefulWidget {
   const ImageListViewPage({super.key});
@@ -42,10 +43,11 @@ class _ImageListViewPageState extends State<ImageListViewPage>
   int maxFailedLoadAttempts = 3;
   RewardedInterstitialAd? _rewardedInterstitialAd;
   int _numRewardedInterstitialLoadAttempts = 0;
-  int _lastAdShownIndex = 0;
+  final int _lastAdShownIndex = 0;
   final Map<int, GlobalKey> _itemKeys = {};
-  int _maxVisibleIndex = -1;
+  final int _maxVisibleIndex = -1;
   final Set<int> _adShownIndexes = {};
+  final LocalAuthentication _localAuth = LocalAuthentication();
 
   @override
   void initState() {
@@ -229,6 +231,36 @@ class _ImageListViewPageState extends State<ImageListViewPage>
     }
   }
 
+  Future<bool> _authenticate() async {
+    final bool canAuthenticate = await _localAuth.canCheckBiometrics || await _localAuth.isDeviceSupported();
+    if (!canAuthenticate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Thiết bị không hỗ trợ sinh trắc học!')),
+      );
+      return false;
+    }
+    try {
+      final bool didAuthenticate = await _localAuth.authenticate(
+        localizedReason: 'Vui lòng xác thực để tiếp tục',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+      if (!didAuthenticate) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Xác thực thất bại!')),
+        );
+      }
+      return didAuthenticate;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi xác thực: $e')),
+      );
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -261,18 +293,32 @@ class _ImageListViewPageState extends State<ImageListViewPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ListView Demo'),
+        title: Lottie.asset(
+          'assets/animations/Image.json',
+          width: 48,
+          height: 48,
+          fit: BoxFit.contain,
+          repeat: true,
+        ),
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
+            icon: const Icon(Icons.fingerprint),
+            tooltip: 'Xác thực vân tay/Face ID',
+            onPressed: _authenticate,
+          ),
+          IconButton(
             icon: const Icon(Icons.auto_awesome),
             tooltip: 'AI Image Generator',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AiChatPage()),
-              );
+            onPressed: () async {
+              final bool didAuthenticate = await _authenticate();
+              if (didAuthenticate) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AiChatPage()),
+                );
+              }
             },
           ),
           IconButton(

@@ -3,10 +3,11 @@ package com.example.example_for_list_view
 import android.os.BatteryManager
 import android.content.Context
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity: FlutterActivity() {
+class MainActivity: FlutterFragmentActivity() {
     private val CHANNEL = "com.example.battery"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
