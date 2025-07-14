@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/image_entity.dart';
 import '../../domain/usecases/get_images_usecase.dart';
+import 'package:local_auth/local_auth.dart';
 
 part 'image_event.dart';
 part 'image_state.dart';
@@ -57,6 +58,32 @@ class ImageBloc extends Bloc<ImageEvent, ImageState> {
           // Không emit error để tránh làm mất danh sách hiện tại
           print('Error loading more images: $e');
         }
+      }
+    });
+
+    on<AuthenticateForAIEvent>((event, emit) async {
+      emit(AuthInProgress());
+      final localAuth = LocalAuthentication();
+      final bool canAuthenticate = await localAuth.canCheckBiometrics || await localAuth.isDeviceSupported();
+      if (!canAuthenticate) {
+        emit(AuthFailure('Thiết bị không hỗ trợ sinh trắc học!'));
+        return;
+      }
+      try {
+        final bool didAuthenticate = await localAuth.authenticate(
+          localizedReason: 'Vui lòng xác thực để tiếp tục',
+          options: const AuthenticationOptions(
+            biometricOnly: true,
+            stickyAuth: true,
+          ),
+        );
+        if (didAuthenticate) {
+          emit(AuthSuccess());
+        } else {
+          emit(AuthFailure('Xác thực thất bại!'));
+        }
+      } catch (e) {
+        emit(AuthFailure('Lỗi xác thực: $e'));
       }
     });
   }

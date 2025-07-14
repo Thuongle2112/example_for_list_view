@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/image_bloc.dart';
+import '../../bloc/image_bloc.dart';
 
 class ImageColumnPage extends StatelessWidget {
   const ImageColumnPage({super.key});

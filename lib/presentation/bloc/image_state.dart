@@ -38,3 +38,10 @@ class ImageError extends ImageState {
   @override
   List<Object> get props => [message];
 } 
+
+class AuthInProgress extends ImageState {}
+class AuthSuccess extends ImageState {}
+class AuthFailure extends ImageState {
+  final String message;
+  AuthFailure(this.message);
+} 

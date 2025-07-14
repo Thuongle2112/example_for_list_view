@@ -7,4 +7,6 @@ abstract class ImageEvent extends Equatable {
 
 class FetchImagesEvent extends ImageEvent {}
 
-class LoadMoreImages extends ImageEvent {} 
+class LoadMoreImages extends ImageEvent {}
+
+class AuthenticateForAIEvent extends ImageEvent {} 
