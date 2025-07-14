@@ -3,8 +3,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:lottie/lottie.dart';
 import '../../../data/services/ai_service.dart';
 import 'ai_image_viewer_page.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'chat_message_hive.dart';
 
 class AiChatPage extends StatefulWidget {
   const AiChatPage({super.key});
@@ -19,38 +17,14 @@ class _AiChatPageState extends State<AiChatPage> {
   
   bool _isGenerating = false;
   String? _generatedImageUrl;
-  List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
   List<String> _presetPrompts = [];
-
-  late Box<ChatMessageHive> _chatBox;
 
   @override
   void initState() {
     super.initState();
-    _initHive();
     _presetPrompts = AiService.getPresetPrompts();
-  }
-
-  Future<void> _initHive() async {
-    await Hive.initFlutter();
-    if (!Hive.isAdapterRegistered(1)) {
-      Hive.registerAdapter(ChatMessageHiveAdapter());
-    }
-    _chatBox = await Hive.openBox<ChatMessageHive>('ai_chat_history');
-    _loadHistory();
-  }
-
-  void _loadHistory() {
-    final history = _chatBox.values.map((e) => e.toChatMessage()).toList();
-    setState(() {
-      _messages = history.isNotEmpty ? history : [];
-      if (_messages.isEmpty) _addWelcomeMessage();
-    });
-  }
-
-  Future<void> _saveHistory() async {
-    await _chatBox.clear();
-    await _chatBox.addAll(_messages.map((e) => ChatMessageHive.fromChatMessage(e)));
+    _addWelcomeMessage();
   }
 
   void _addWelcomeMessage() {
@@ -65,7 +39,6 @@ class _AiChatPageState extends State<AiChatPage> {
   void dispose() {
     _promptController.dispose();
     _scrollController.dispose();
-    _chatBox.close();
     super.dispose();
   }
 
@@ -87,7 +60,6 @@ class _AiChatPageState extends State<AiChatPage> {
         isLoading: true,
       ));
     });
-    await _saveHistory();
 
     _promptController.clear();
     _scrollToBottom();
@@ -113,7 +85,6 @@ class _AiChatPageState extends State<AiChatPage> {
           ));
         }
       });
-      await _saveHistory();
     } catch (e) {
       setState(() {
         _messages.removeLast();
@@ -123,7 +94,6 @@ class _AiChatPageState extends State<AiChatPage> {
           timestamp: DateTime.now(),
         ));
       });
-      await _saveHistory();
     } finally {
       setState(() {
         _isGenerating = false;
@@ -148,15 +118,6 @@ class _AiChatPageState extends State<AiChatPage> {
     _promptController.text = prompt;
   }
 
-  void _clearHistory() async {
-    await _chatBox.clear();
-    setState(() {
-      _messages.clear();
-      _addWelcomeMessage();
-    });
-    await _saveHistory();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -166,11 +127,6 @@ class _AiChatPageState extends State<AiChatPage> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Xóa lịch sử chat',
-            onPressed: _clearHistory,
-          ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () {
