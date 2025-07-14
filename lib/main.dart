@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'core/di/injector.dart';
-import 'presentation/bloc/image_bloc.dart';
 import 'presentation/pages/image_column_page.dart';
 import 'presentation/pages/image_listview_page.dart';
-import 'package:example_for_list_view/presentation/pages/qr/qr_scan_page.dart';
+import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await MobileAds.instance.initialize();
   await dotenv.load(fileName: '.env');
   init();
   runApp(const MyApp());
@@ -19,17 +20,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Gallery',
+      title: 'PicList',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.purple),
+        useMaterial3: true,
       ),
-      home: BlocProvider(
-        create: (_) => sl<ImageBloc>()..add(FetchImagesEvent()),
-        child: const HomeSwitcher(),
-      ),
-      routes: {'/qr-scan': (context) => const QrScanPage()},
+      routerConfig: appRouter,
     );
   }
 }
