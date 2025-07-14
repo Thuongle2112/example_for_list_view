@@ -77,33 +77,33 @@ class _ImageDetailPageState extends State<ImageDetailPage> {
   //   }
   // }
 
-Future<void> _downloadImage() async {
-  final url = widget.image.downloadUrl;
+  Future<void> _downloadImage() async {
+    final url = widget.image.downloadUrl;
 
-  try {
-    // Lấy thư mục tạm
-    final tempDir = await getTemporaryDirectory();
-    final filePath = '${tempDir.path}/${widget.image.id}.jpg';
+    try {
+      // Lấy thư mục tạm
+      final tempDir = await getTemporaryDirectory();
+      final filePath = '${tempDir.path}/${widget.image.id}.jpg';
 
-    // Tải ảnh từ URL về máy
-    await Dio().download(url, filePath);
+      // Tải ảnh từ URL về máy
+      await Dio().download(url, filePath);
 
-    // Lưu ảnh từ máy vào gallery
-    final result = await GallerySaver.saveImage(filePath);
-    if (result == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Image saved to gallery')),
-      );
-    } else {
-      throw 'Image save failed';
+      // Lưu ảnh từ máy vào gallery
+      final result = await GallerySaver.saveImage(filePath);
+      if (result == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Image saved to gallery')),
+        );
+      } else {
+        throw 'Image save failed';
+      }
+    } catch (e) {
+      print('❌ Error saving image: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('❌ Failed to save image')));
     }
-  } catch (e) {
-    print('❌ Error saving image: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('❌ Failed to save image')),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {

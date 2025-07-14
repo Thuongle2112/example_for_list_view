@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/di/injector.dart';
-import 'presentation/pages/image_column_page.dart';
-import 'presentation/pages/image_listview_page.dart';
+import 'presentation/bloc/news_bloc.dart';
+import 'presentation/pages/news/news_page.dart';
+import 'presentation/pages/home/image_column_page.dart';
+import 'presentation/pages/home/image_listview_page.dart';
 import 'core/router/app_router.dart';
+import 'presentation/pages/main_scaffold.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +16,7 @@ void main() async {
   await MobileAds.instance.initialize();
   await dotenv.load(fileName: '.env');
   init();
+  setupNewsDI(sl);
   runApp(const MyApp());
 }
 

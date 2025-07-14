@@ -3,18 +3,19 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-import '../bloc/image_bloc.dart';
-import '../../domain/entities/image_entity.dart';
-import 'detail/image_detail_page.dart';
-import 'qr/qr_generate_page.dart';
-import 'ai/ai_chat_page.dart';
+import '../../bloc/image_bloc.dart';
+import '../../../domain/entities/image_entity.dart';
+import '../detail/image_detail_page.dart';
+import '../qr/qr_generate_page.dart';
+import '../ai/ai_chat_page.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:local_auth/local_auth.dart';
+import 'widgets/image_card.dart';
+import 'widgets/shimmer_card.dart';
 
 class ImageListViewPage extends StatefulWidget {
   const ImageListViewPage({super.key});
@@ -42,10 +43,11 @@ class _ImageListViewPageState extends State<ImageListViewPage>
   int maxFailedLoadAttempts = 3;
   RewardedInterstitialAd? _rewardedInterstitialAd;
   int _numRewardedInterstitialLoadAttempts = 0;
-  int _lastAdShownIndex = 0;
+  // final int _lastAdShownIndex = 0;
   final Map<int, GlobalKey> _itemKeys = {};
-  int _maxVisibleIndex = -1;
+  // final int _maxVisibleIndex = -1;
   final Set<int> _adShownIndexes = {};
+  final LocalAuthentication _localAuth = LocalAuthentication();
 
   @override
   void initState() {
@@ -229,6 +231,38 @@ class _ImageListViewPageState extends State<ImageListViewPage>
     }
   }
 
+  Future<bool> _authenticate() async {
+    final bool canAuthenticate =
+        await _localAuth.canCheckBiometrics ||
+        await _localAuth.isDeviceSupported();
+    if (!canAuthenticate) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Thiết bị không hỗ trợ sinh trắc học!')),
+      );
+      return false;
+    }
+    try {
+      final bool didAuthenticate = await _localAuth.authenticate(
+        localizedReason: 'Vui lòng xác thực để tiếp tục',
+        options: const AuthenticationOptions(
+          biometricOnly: true,
+          stickyAuth: true,
+        ),
+      );
+      if (!didAuthenticate) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Xác thực thất bại!')));
+      }
+      return didAuthenticate;
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi xác thực: $e')));
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -238,41 +272,36 @@ class _ImageListViewPageState extends State<ImageListViewPage>
     _rewardedInterstitialAd?.dispose();
   }
 
-  Widget _buildShimmerCard() {
-    return Card(
-      margin: const EdgeInsets.all(8.0),
-      child: Shimmer.fromColors(
-        baseColor: Colors.grey[300]!,
-        highlightColor: Colors.grey[100]!,
-        child: Column(
-          children: [
-            Container(height: 200, color: Colors.white),
-            ListTile(
-              title: Container(height: 16, color: Colors.white),
-              subtitle: Container(height: 12, color: Colors.white),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ListView Demo'),
+        title: Lottie.asset(
+          'assets/animations/Image.json',
+          width: 48,
+          height: 48,
+          fit: BoxFit.contain,
+          repeat: true,
+        ),
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
+            icon: const Icon(Icons.fingerprint),
+            tooltip: 'Xác thực vân tay/Face ID',
+            onPressed: _authenticate,
+          ),
+          IconButton(
             icon: const Icon(Icons.auto_awesome),
             tooltip: 'AI Image Generator',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AiChatPage()),
-              );
+            onPressed: () async {
+              final bool didAuthenticate = await _authenticate();
+              if (didAuthenticate) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AiChatPage()),
+                );
+              }
             },
           ),
           IconButton(
@@ -315,7 +344,7 @@ class _ImageListViewPageState extends State<ImageListViewPage>
                 if (state is ImageLoading) {
                   return ListView.builder(
                     itemCount: 6,
-                    itemBuilder: (context, index) => _buildShimmerCard(),
+                    itemBuilder: (context, index) => ShimmerCard(),
                   );
                 } else if (state is ImageLoaded) {
                   if (state.images.isEmpty) {
@@ -354,7 +383,7 @@ class _ImageListViewPageState extends State<ImageListViewPage>
                         if (index >= state.images.length) {
                           return Padding(
                             padding: EdgeInsets.all(16.0),
-                            // child: Center(child: CircularProgressIndicator()),
+                            // child: Center(child: ShimmerCard()),
                             child: Center(
                               child: Lottie.asset(
                                 'assets/animations/lottie_lego.json',
@@ -366,126 +395,33 @@ class _ImageListViewPageState extends State<ImageListViewPage>
                             ),
                           );
                         }
-
                         final img = state.images[index];
-
-                        return RepaintBoundary(
-                          key: _itemKeys[index],
-                          child: Card(
-                            margin: const EdgeInsets.all(8.0),
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  PageRouteBuilder(
-                                    pageBuilder:
-                                        (
-                                          context,
-                                          animation,
-                                          secondaryAnimation,
-                                        ) => ImageDetailPage(image: img),
-                                    transitionsBuilder:
-                                        (
-                                          context,
-                                          animation,
-                                          secondaryAnimation,
-                                          child,
-                                        ) {
-                                          return FadeTransition(
-                                            opacity: animation,
-                                            child: child,
-                                          );
-                                        },
-                                  ),
-                                );
-                              },
-                              child: Column(
-                                children: [
-                                  Hero(
-                                    tag: 'image_${img.id}',
-                                    child: CachedNetworkImage(
-                                      imageUrl: img.downloadUrl,
-                                      height: 200,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) =>
-                                          Shimmer.fromColors(
-                                            baseColor: Colors.grey[300]!,
-                                            highlightColor: Colors.grey[100]!,
-                                            child: Container(
-                                              height: 200,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                      errorWidget: (context, url, error) =>
-                                          Container(
-                                            height: 200,
-                                            color: Colors.grey[300],
-                                            child: const Center(
-                                              child: Icon(
-                                                Icons.error,
-                                                size: 50,
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                          ),
-                                    ),
-                                  ),
-                                  ListTile(
-                                    title: Text(
-                                      img.author,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      'ID: ${img.id} - Index: $index',
-                                    ),
-                                    trailing: AnimatedBuilder(
-                                      animation: _favoriteController,
-                                      builder: (context, child) {
-                                        return Transform.scale(
-                                          scale:
-                                              1.0 +
-                                              _favoriteController.value * 0.2,
-                                          child: IconButton(
-                                            icon: const Icon(
-                                              Icons.favorite_border,
-                                            ),
-                                            onPressed: () {
-                                              _favoriteController
-                                                  .forward()
-                                                  .then((_) {
-                                                    _favoriteController
-                                                        .reverse();
-                                                  });
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    'Added ${img.author} to favorites',
-                                                  ),
-                                                  action: SnackBarAction(
-                                                    label: 'Undo',
-                                                    onPressed: () {},
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
+                        return ImageCard(
+                          img: img,
+                          favoriteController: _favoriteController,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                pageBuilder:
+                                    (context, animation, secondaryAnimation) =>
+                                        ImageDetailPage(image: img),
+                                transitionsBuilder:
+                                    (
+                                      context,
+                                      animation,
+                                      secondaryAnimation,
+                                      child,
+                                    ) {
+                                      return FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      );
+                                    },
                               ),
-                            ),
-                          ),
+                            );
+                          },
+                          repaintKey: _itemKeys[index],
                         );
                       },
                     ),
