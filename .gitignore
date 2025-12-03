@@ -12,6 +12,12 @@
 .swiftpm/
 migrate_working_dir/
 
+# Ignore desktop & web platforms
+/linux/
+/macos/
+/web/
+/windows/
+
 # IntelliJ related
 *.iml
 *.ipr

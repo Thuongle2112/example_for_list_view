@@ -4,8 +4,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AiService {
   static const String _baseUrl = 'https://api.replicate.com/v1/predictions';
-  static const String _model = 'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b';
-  
+  static const String _model =
+      'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b';
+
   static String get _apiKey => dotenv.env['REPLICATE_API_KEY'] ?? '';
 
   static Future<String?> generateImage(String prompt) async {
@@ -35,11 +36,13 @@ class AiService {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final predictionId = data['id'];
-        
+
         // Poll cho kết quả
         return await _pollForResult(predictionId);
       } else {
-        print('Error creating prediction: ${response.statusCode} - ${response.body}');
+        print(
+          'Error creating prediction: ${response.statusCode} - ${response.body}',
+        );
         return null;
       }
     } catch (e) {
@@ -51,20 +54,18 @@ class AiService {
   static Future<String?> _pollForResult(String predictionId) async {
     const maxAttempts = 30;
     int attempts = 0;
-    
+
     while (attempts < maxAttempts) {
       try {
         final response = await http.get(
           Uri.parse('$_baseUrl/$predictionId'),
-          headers: {
-            'Authorization': 'Token $_apiKey',
-          },
+          headers: {'Authorization': 'Token $_apiKey'},
         );
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
           final status = data['status'];
-          
+
           if (status == 'succeeded') {
             final outputs = data['output'] as List;
             if (outputs.isNotEmpty) {
@@ -75,7 +76,7 @@ class AiService {
             return null;
           }
         }
-        
+
         await Future.delayed(const Duration(seconds: 2));
         attempts++;
       } catch (e) {
@@ -83,7 +84,7 @@ class AiService {
         return null;
       }
     }
-    
+
     print('Timeout waiting for image generation');
     return null;
   }
@@ -100,4 +101,4 @@ class AiService {
       'A cozy coffee shop interior, warm lighting, realistic',
     ];
   }
-} 
+}
